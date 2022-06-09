@@ -1,0 +1,116 @@
+﻿@page "/allposts"
+
+@using EjnerHesselCodeCase.Modles
+@using System.Linq;
+@using System.Threading.Tasks;
+@using EjnerHesselCodeCase.Service;
+
+@inject IJSRuntime JavaScriptRuntime;
+
+<input placeholder="Enter Author Name" @bind-value="authorId" />
+
+<input type="button" class="btn btn-primary" @onclick="() => GetAllPosts()" value="Get Posts" />
+<p><b>@author</b></p>
+
+
+@if (feeds == null)
+{
+    if (!pageLoaded && authorId != "" && author != "Invalid Author Id!")
+    {
+        <p><em>Loading...</em></p>
+    }
+}
+else
+{
+    if (!author.ToUpperInvariant().Contains("NOT FOUND"))
+    {
+        counter = 0;
+        <table class='table table-striped'>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th><a @onclick="() => SetSort(0)">Post Title</a></th>
+                    <th><a @onclick="() => SetSort(1)">Post Type</a></th>
+                    <th>Content</th>
+                    <th><a @onclick="() => SetSort(2)">Publish Date</a></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var feed in feeds)
+                {
+                    counter++;
+                    <tr>
+                        <td>@counter</td>
+                        <td><NavLink href=@feed.Link target="_blank">@feed.Title</NavLink></td>
+                        <td>@feed.FeedType</td>
+                        <td>@feed.Content</td>
+                        <td>@feed.PublishDate</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+@code {
+    RSSFeedService _RSSFeedService = new();
+
+    List<Feed> feeds = new();
+    AuthorPosts authorPosts;
+    string authorId = "";
+    bool pageLoaded;
+    int counter;
+    string author = "";
+    int sorting = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            pageLoaded = true;
+        }
+    }
+
+    protected void GetAllPosts()
+    {
+        author = "";
+        pageLoaded = false;
+        feeds.Clear();
+        if (authorId != "")
+        {
+            authorPosts = _RSSFeedService.AllPosts(authorId);
+            if (authorPosts != null)
+            {
+                if (authorPosts.AuthorName.ToUpperInvariant().Contains("NOT FOUND"))
+                {
+                    author = "Invalid Author Name!";
+                }
+                else
+                {
+                    author = "Author Name : " + authorPosts.AuthorName;
+                    feeds = authorPosts.Feeds.ToList();
+
+
+                }
+            }
+        }
+        else
+        {
+            author = "Author Id should not be blank";
+        }
+    }
+    protected void SetSort(int sortType)
+    {
+        switch (sortType)
+        {
+            case 0:
+                feeds = feeds.OrderBy(f => f.Title).ToList();
+                break;
+            case 1:
+                feeds = feeds.OrderBy(f => f.FeedType).ToList();
+                break;
+            case 2:
+                feeds = feeds.OrderBy(f => f.PublishDate).ToList();
+                break;
+        }
+    }
+}     
